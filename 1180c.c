@@ -2,9 +2,10 @@
 #include <stdlib.h>
 
 int main(){
-    int n, *v = malloc(n * sizeof(int));
-
+    int n;
     scanf("%d", &n);
+
+    int *v = malloc(n * sizeof(int));
     for(int i = 0; i < n; ++i){
        scanf("%d", v + i); 
     } 
