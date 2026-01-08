@@ -1,0 +1,459 @@
+\documentclass[12pt,a4paper]{report}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[brazil]{babel}
+\usepackage{amsmath, amssymb, amsthm}
+\usepackage{geometry}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{array}
+\usepackage{setspace}
+\usepackage{enumitem}
+\usepackage{lmodern}
+\usepackage{titling}
+\usepackage{hyperref}
+\usepackage{mathtools}
+\usepackage{caption}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{tabularx}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{tcolorbox}
+
+\tcbuselibrary{skins,breakable}
+
+
+\geometry{margin=2.5cm}
+\setstretch{1.15}
+
+\floatname{algorithm}{Algoritmo}
+
+
+
+\renewcommand{\thesection}{\arabic{section}}
+\renewcommand{\thesubsection}{\arabic{section}.\arabic{subsection}}
+
+\begin{document}
+
+\begin{titlepage}
+    \centering
+
+    \includegraphics[width=5cm]{logo.png}\par\vspace{1cm}
+
+    {\large UNIVERSIDADE FEDERAL DE SÃO PAULO}\\
+    {\large Instituto de Ciência e Tecnologia}\\
+    {\large Bacharelado Interdisciplinar em Ciência e Tecnologia}
+
+    \vspace{3cm}
+
+    {\bfseries\Large BALANCEAMENTO DE ÁRVORES}\\[0.4cm]
+    {\large Árvores AVL, Rubro-Negras e B}
+
+    \vspace{3cm}
+
+    {\large Trabalho apresentado como recuperação da disciplina }\\
+    {\large de Algoritmos e Estruturas de Dados I}
+
+    \vspace{1.5cm}
+
+    {\large \textbf{Autora:}}\\
+    {\large Gabriely Di Folco Rocha}
+
+    \vfill
+
+    {\large São José dos Campos}\\
+    {\large \the\year}
+
+\end{titlepage}
+
+
+\pagenumbering{arabic}
+\setcounter{page}{1}
+
+\section{Introdução}
+
+Estruturas de dados baseadas em árvores desempenham um papel central no projeto de algoritmos eficientes, especialmente quando se deseja realizar operações de busca, inserção e remoção de forma rápida. Entre essas estruturas, as árvores de busca binária (Binary Search Trees -- BSTs) ocupam posição de destaque por sua simplicidade e eficiência média. No entanto, seu desempenho depende fortemente da forma da árvore, podendo degradar-se significativamente em situações desfavoráveis.
+
+Quando uma árvore de busca binária degenera em uma estrutura linear, suas operações passam a ter custo linear, comprometendo a eficiência esperada. Surge, portanto, a necessidade de mecanismos que garantam que a altura da árvore permaneça proporcional a $\log n$, independentemente da ordem de inserção dos elementos. Esse é o objetivo das chamadas árvores balanceadas.
+
+Este trabalho apresenta os principais conceitos relacionados ao balanceamento de árvores de busca, com ênfase em árvores AVL, árvores rubro-negras e árvores B. Busquei referências da literatura (Cormen, Knuth e Weiss), de artigos da Wikipedia e de slides da disciplina de Algoritmos e Estruturas de Dados II do IC-Unicamp, coursera e IME-USP.
+
+\section{Árvores de Busca e o problema do desbalanceamento}
+
+Uma árvore de busca binária é definida pela propriedade de que, para cada nó, todos os elementos da subárvore esquerda são menores que sua chave, e todos os da subárvore direita são maiores. Essa propriedade permite realizar buscas de forma semelhante à busca binária em vetores ordenados.
+
+Entretanto, diferentemente de vetores, a forma da árvore depende da ordem de inserção dos elementos. Inserções ordenadas podem gerar uma árvore degenerada, cuja altura é $n$, fazendo com que operações de busca, inserção e remoção tenham custo $O(n)$. Abaixo, percebe-se que a árvore degenerFada mais se aproxima de uma lista encadeada.
+
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.5\linewidth]{image.png}
+    \caption{Exemplo de árvores quanto ao balanceamento.}
+    \label{fig:placeholder}
+\end{figure}
+
+
+Assim, a eficiência das árvores de busca está diretamente relacionada à sua altura. O objetivo das árvores balanceadas é garantir que essa altura seja mantida em $O(\log n)$, assegurando desempenho previsível mesmo no pior caso.
+
+\section{Árvores AVL}
+
+As árvores AVL, propostas por Adelson-Velsky e Landis, foram as primeiras estruturas de dados a implementar balanceamento automático em árvores binárias de busca. A ideia central consiste em restringir a diferença de altura entre as subárvores esquerda e direita de qualquer nó, de modo a impedir o crescimento degenerado da árvore.
+
+Define-se o \textit{fator de balanceamento} de um nó como a diferença entre as alturas de suas subárvores. Para que a árvore seja considerada AVL, esse fator deve assumir exclusivamente os valores $-1$, $0$ ou $1$. Sempre que uma inserção ou remoção viola essa condição, o balanceamento é restaurado por meio de rotações locais, que podem ser simples (à esquerda ou à direita) ou duplas (esquerda-direita ou direita-esquerda). A figura 2 ilustra a árvore mais desbalanceada à esquerda que se pode gerar com as novas regras.
+
+
+\begin{algorithm}[H]
+\caption{-- Inserção em árvore AVL segundo Knuth}
+
+\begin{tcolorbox}[
+    colback=black,
+    coltext=white,
+    boxrule=0pt,
+    sharp corners,
+    breakable
+]
+
+\begin{algorithmic}[1]
+\Function{InsertAVL}{$T, x$}
+
+    \Comment{Etapa 1: inserção padrão de BST}
+    \If{$T = \text{NULL}$}
+        \State \Return novo nó com chave $x$
+    \EndIf
+
+    \If{$x < T.chave$}
+        \State $T.esq \leftarrow$ \Call{InsertAVL}{$T.esq, x$}
+    \Else
+        \State $T.dir \leftarrow$ \Call{InsertAVL}{$T.dir, x$}
+    \EndIf
+
+    \Statex
+    \Comment{Etapa 2: atualização da altura}
+    \State Atualiza altura de $T$
+    \State $fb \leftarrow$ altura($T.esq$) $-$ altura($T.dir$)
+
+    \Statex
+    \Comment{Etapa 3: correção do balanceamento}
+
+    \If{$fb > 1$ \textbf{e} $x < T.esq.chave$}
+        \Comment{Caso esquerda--esquerda}
+        \State \Return \Call{RotacaoDireita}{$T$}
+    \EndIf
+
+    \If{$fb < -1$ \textbf{e} $x > T.dir.chave$}
+        \Comment{Caso direita--direita}
+        \State \Return \Call{RotacaoEsquerda}{$T$}
+    \EndIf
+
+    \If{$fb > 1$ \textbf{e} $x > T.esq.chave$}
+        \Comment{Caso esquerda--direita}
+        \State $T.esq \leftarrow$ \Call{RotacaoEsquerda}{$T.esq$}
+        \State \Return \Call{RotacaoDireita}{$T$}
+    \EndIf
+
+    \If{$fb < -1$ \textbf{e} $x < T.dir.chave$}
+        \Comment{Caso direita--esquerda}
+        \State $T.dir \leftarrow$ \Call{RotacaoDireita}{$T.dir$}
+        \State \Return \Call{RotacaoEsquerda}{$T$}
+    \EndIf
+
+    \Statex
+    \State \Return $T$
+
+\EndFunction
+\end{algorithmic}
+
+\end{tcolorbox}
+\end{algorithm}
+
+
+
+Mesmo nesse
+pior caso, a diferença de altura entre as subárvores de cada nó permanece limitada aos
+valores $-1$, $0$ ou $1$, o que impede o crescimento linear da árvore. O impacto desse balanceamento pode ser analisado observando-se o crescimento do número de nós em função da altura da árvore. Seja $N_h$ o número mínimo de nós de uma árvore AVL de altura $h$. Para os primeiros valores, tem-se $N_0 = 1$, $N_1 = 2$ e, de forma geral,
+\[
+N_h = 1 + N_{h-1} + N_{h-2}.
+\]
+Essa recorrência é análoga à da sequência de Fibonacci, o que permite estabelecer uma relação direta entre a altura da árvore e essa sequência. Em particular, vale que
+\[
+N_h = F_{h+2} - 1,
+\]
+onde $F_i$ denota o $i$-ésimo número de Fibonacci. Utilizando a aproximação assintótica
+\[
+F_i \approx \frac{\Phi^i}{\sqrt{5}}, \quad \text{com } \Phi = \frac{1+\sqrt{5}}{2},
+\]
+obtém-se
+\[
+N_h \approx \frac{\Phi^{h+2}}{\sqrt{5}} - 1.
+\]
+
+Reorganizando a expressão e aplicando logaritmos, conclui-se que a altura $h$ da árvore cresce proporcionalmente ao logaritmo do número de nós:
+\[
+h \leq 1{,}44 \log N.
+\]
+Esse resultado mostra que o balanceamento imposto pelas árvores AVL controla rigidamente sua altura, impedindo degradações estruturais.
+
+Como consequência direta, todas as operações fundamentais — busca, inserção e remoção — possuem complexidade $O(\log n)$ tanto no pior quanto no caso médio, conforme destacado por Weiss. A principal vantagem das árvores AVL reside justamente nessa garantia forte de altura mínima, que resulta em buscas ligeiramente mais rápidas. Em contrapartida, o custo adicional de rotações pode tornar inserções e remoções mais onerosas quando comparadas a estruturas com balanceamento mais flexível.
+
+\section{Árvores Rubro-Negras}
+
+As árvores rubro-negras constituem uma alternativa menos rígida ao balanceamento estrito das árvores AVL. Nelas, cada nó possui uma cor — vermelha ou preta — e obedece a um conjunto de propriedades que garantem uma altura limitada.
+
+As principais propriedades são:
+\begin{itemize}
+    \item Todo nó é vermelho ou preto;
+    \item A raiz é sempre preta;
+    \item Nenhum nó vermelho pode ter filho vermelho;
+    \item Todo caminho de um nó até uma folha nula contém o mesmo número de nós pretos.
+\end{itemize}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.5\linewidth]{image3.png}
+    \caption{Exemplo de árvore rubro-negra esquerdista, IC-Unicamp.}
+    \label{fig:placeholder}
+\end{figure}
+
+Essas restrições garantem que a altura da árvore seja, no máximo, $2\log(n+1)$. Embora menos rigidamente balanceadas que as AVL, árvores rubro-negras realizam menos rotações durante atualizações, o que as torna eficientes na prática. 
+
+\begin{center}
+\fbox{
+\begin{minipage}{0.9\linewidth}
+\textbf{Altura e complexidade da árvore rubro-negra}
+
+
+\begin{itemize}
+    \item \textbf{Caso base ($bh = 0$):}
+    
+    A árvore consiste apenas em uma folha \texttt{NULL}. Logo, possui exatamente $2^{bh} - 1 = 0$ nós não nulos.
+
+    \item \textbf{Passo indutivo ($bh > 0$):}
+    
+    Os filhos da raiz possuem altura-negra pelo menos $bh - 1$. Pela hipótese de indução, cada subárvore contém ao menos
+    \[
+        2^{bh-1} - 1
+    \]
+    nós não nulos. Somando as duas subárvores e o nó raiz, a árvore possui no mínimo
+    \[
+        2\left(2^{bh-1} - 1\right) + 1 = 2^{bh} - 1
+    \]
+    nós não nulos.
+\end{itemize}
+
+Portanto, uma árvore com altura-negra $bh$ possui pelo menos $2^{bh} - 1$ nós não nulos. Em árvores rubro-negras, a altura-negra $bh$ é pelo menos metade da altura total $h$ da árvore, pois não existem dois nós vermelhos consecutivos em um caminho da raiz até uma folha.
+
+Como o número de nós não nulos satisfaz
+\[
+    n \geq 2^{bh} - 1 \geq 2^{\frac{h}{2}} - 1,
+\]
+segue que
+\[
+    h \leq 2 \lg (n + 1),
+\]
+o que implica
+\[
+    h = O(\lg n).
+\]
+\end{minipage}
+}
+\end{center}
+
+Por essa razão, são amplamente utilizadas em implementações reais, como em bibliotecas padrão de linguagens de programação e em sistemas operacionais. Conforme apresentado por Cormen et al., as operações de busca, inserção e remoção mantêm complexidade $O(\log n)$.
+\begin{algorithm}[H]
+\caption{— Inserção em árvore rubro-negra segundo Knuth}
+\begin{tcolorbox}[
+    colback=black,
+    coltext=white,
+    boxrule=0pt,
+    sharp corners,
+    breakable
+]
+\begin{algorithmic}[1]
+\Function{FixInsertRB}{$T, z$}
+
+    \While{$z.pai$ é vermelho}
+
+        \If{$z.pai$ é filho esquerdo de $z.avo$}
+
+            \State $y \leftarrow z.avo.dir$ \Comment{tio de $z$}
+
+            \If{$y$ é vermelho}
+                \Comment{Caso 1: recoloração}
+                \State Recolore $z.pai$, $y$ e $z.avo$
+                \State $z \leftarrow z.avo$
+            \Else
+                \If{$z$ é filho direito}
+                    \Comment{Caso 2: rotação preparatória}
+                    \State $z \leftarrow z.pai$
+                    \State \Call{RotacaoEsquerda}{$T, z$}
+                \EndIf
+
+                \Comment{Caso 3: rotação principal}
+                \State Recolore $z.pai$ e $z.avo$
+                \State \Call{RotacaoDireita}{$T, z.avo$}
+            \EndIf
+
+        \EndIf
+    \EndWhile
+
+    \State Define a raiz como preta
+
+\EndFunction
+\end{algorithmic}
+\end{tcolorbox}
+\end{algorithm}
+
+
+
+\section{Árvores B e B+}
+
+Enquanto árvores AVL e rubro-negras são adequadas para memória principal, árvores B foram projetadas para ambientes onde o custo dominante é o acesso à memória secundária, como discos.
+
+Nessas estruturas, cada nó pode armazenar múltiplas chaves e possuir vários filhos, reduzindo significativamente a altura da árvore. Isso diminui o número de acessos a disco necessários para realizar operações.
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.5\linewidth]{image4.png}
+    \caption{Exemplo de árvore B, Wikipedia.}
+    \label{fig:placeholder}
+\end{figure}
+
+\begin{algorithm}[H]
+\caption{-- Divisão de nó em árvore B segundo Knuth}
+
+\begin{tcolorbox}[
+    colback=black,
+    boxrule=0pt,
+    sharp corners,
+    breakable
+]
+
+{\color{white}
+\begin{algorithmic}[1]
+\Function{SplitChild}{$x, i$}
+
+    \Comment{Etapa 1: preparação}
+    \State $y \leftarrow x.filho[i]$
+    \State Criar novo nó $z$
+    \State $z.n \leftarrow t - 1$
+
+    \Statex
+    \Comment{Etapa 2: mover chaves}
+    \For{$j \leftarrow 1$ \textbf{to} $t - 1$}
+        \State $z.chave[j] \leftarrow y.chave[j+t]$
+    \EndFor
+
+    \Statex
+    \Comment{Etapa 3: mover filhos}
+    \If{$y$ não é folha}
+        \For{$j \leftarrow 1$ \textbf{to} $t$}
+            \State $z.filho[j] \leftarrow y.filho[j+t]$
+        \EndFor
+    \EndIf
+
+    \Statex
+    \Comment{Etapa 4: ajustar nó pai}
+    \State $y.n \leftarrow t - 1$
+    \State Deslocar filhos de $x$ para abrir espaço
+    \State $x.filho[i+1] \leftarrow z$
+    \State Deslocar chaves de $x$
+    \State $x.chave[i] \leftarrow y.chave[t]$
+    \State $x.n \leftarrow x.n + 1$
+
+\EndFunction
+\end{algorithmic}
+}
+
+\end{tcolorbox}
+\end{algorithm}
+
+
+
+As árvores B mantêm todas as folhas no mesmo nível e garantem que cada nó (exceto a raiz) esteja parcialmente cheio, assegurando um bom aproveitamento de espaço. As árvores B+ são uma variação em que todas as chaves são armazenadas nas folhas, facilitando operações de varredura sequencial.
+
+Segundo Cormen, essas estruturas são amplamente empregadas em sistemas de arquivos e bancos de dados devido à sua eficiência em ambientes de armazenamento secundário.
+
+\section{Comparação e considerações finais}
+
+Os algoritmos estudados constituem soluções fundamentais para o problema do desbalanceamento em árvores de busca binária, garantindo que operações de busca, inserção e remoção mantenham complexidade assintótica logarítmica mesmo no pior caso. Embora compartilhem esse objetivo, as estruturas analisadas diferem nas estratégias de balanceamento e nos compromissos assumidos entre desempenho e custo de manutenção.
+
+As árvores AVL impõem um balanceamento rigoroso, limitando estritamente a altura da árvore e favorecendo buscas mais eficientes, à custa de um maior número de rotações em atualizações. As árvores rubro-negras adotam restrições mais flexíveis, preservando a altura em ordem logarítmica com menor custo de reestruturação, o que justifica sua ampla utilização em bibliotecas padrão e sistemas operacionais. As árvores B e B+, por sua vez, são projetadas para ambientes com armazenamento em disco, reduzindo a altura da árvore por meio de nós com múltiplas chaves e minimizando acessos à memória secundária.
+
+A tabela a seguir apresenta uma comparação sintética entre essas estruturas:
+\begin{table}[H]
+\centering
+\caption{Comparação entre estruturas de árvores balanceadas}
+\label{tab:comparacao_arvores_abnt}
+\begin{tabularx}{0.95\textwidth}{l c c c X}
+\toprule
+\textbf{Estrutura} &
+\textbf{Altura} &
+\textbf{Busca} &
+\textbf{Inserção/Remoção} &
+\textbf{Aplicações típicas} \\ \midrule
+
+AVL &
+$O(\log n)$ &
+$O(\log n)$ &
+$O(\log n)$ &
+Sistemas com predominância de operações de busca \\
+
+Rubro-negra &
+$O(\log n)$ &
+$O(\log n)$ &
+$O(\log n)$ &
+Bibliotecas padrão, kernels e aplicações gerais \\
+
+B / B+ &
+$O(\log_m n)$ &
+$O(\log_m n)$ &
+$O(\log_m n)$ &
+Bancos de dados e sistemas de arquivos \\
+
+\bottomrule
+\end{tabularx}
+\end{table}
+
+A escolha da estrutura mais adequada depende das restrições do sistema e do perfil de operações predominantes. Em aplicações com predominância de buscas, árvores AVL podem ser vantajosas. Em cenários gerais de software, árvores rubro-negras oferecem um equilíbrio eficiente entre desempenho e custo de manutenção. Em sistemas de grande escala baseados em armazenamento secundário, árvores B e B+ constituem a escolha natural.
+
+Pelo que discutimos, percebe-se que o estudo das árvores balanceadas é essencial para evitar a degradação estrutural das árvores de busca binária e garantir desempenho previsível. O balanceamento de árvores ocupa, portanto, um papel central na formação em Algoritmos e Estruturas de Dados, ao evidenciar como escolhas estruturais impactam diretamente a eficiência dos algoritmos.
+
+\section{Referências bibliográficas}
+\begin{itemize}
+    \item CORMEN, T. H.; LEISERSON, C. E.; RIVEST, R. L.; STEIN, C. 
+    \textit{Introduction to Algorithms}. 3. ed. Cambridge: MIT Press, 2009.
+
+    \item WEISS, M. A. 
+    \textit{Data Structures and Algorithm Analysis}. 3. ed. Boston: Pearson, 2012.
+
+    \item KNUTH, D. E. 
+    \textit{The Art of Computer Programming, Volume 3: Sorting and Searching}. 
+    2. ed. Reading: Addison-Wesley, 1998.
+
+    \item DAHAB, R. 
+    \textit{Árvores Balanceadas}. Handout da disciplina MC202 – Estruturas de Dados, 
+    Instituto de Computação, Universidade Estadual de Campinas, 2019. 
+    Disponível em: \url{https://www.ic.unicamp.br/~rdahab/cursos/mc202-old/2019-2s/Welcome_files/a16-arvores-balanceadas-handout.pdf}. 
+    Acesso em: jan. 2026.
+
+    \item PANDA IME-USP. 
+    \textit{Desempenho de Árvores AVL}. Material didático online do Instituto de Matemática e Estatística da USP. 
+    Disponível em: \url{https://panda.ime.usp.br/pythonds/static/pythonds_pt/06-Arvores/AVLTreePerformance.html}. 
+    Acesso em: jan. 2026.
+
+    \item SEDGEWICK, R.; WAYNE, K. 
+    \textit{Algorithms, Part II}. Curso online em Algoritmos e Estruturas de Dados, 
+    Universidade de Princeton, plataforma Coursera.
+    Disponível em: \url{https://www.coursera.org/learn/algorithms-part2}. 
+    Acesso em: jan. 2026.
+
+    \item WIKIPÉDIA. 
+    \textit{Árvore B}. Wikipédia, a enciclopédia livre.
+    Disponível em: \url{https://pt.wikipedia.org/wiki/%C3%81rvore_B}. 
+    Acesso em: jan. 2026.
+\end{itemize}
+
+
+\end{document}
